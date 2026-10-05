@@ -34,6 +34,7 @@ type exporterOptions struct {
 	enableVolumes             bool
 	enableNetworks            bool
 	enableSystem              bool
+	enableDiskUsage           bool
 	enhanceMetrics            bool
 }
 
@@ -92,6 +93,10 @@ func Start(cmd *cobra.Command, _ []string) error {
 	go pdcs.StartEventStreamer(logger, updateImages)
 	pdcs.StartCacheSizeTicker(logger, cmdOptions.cacheDuration)
 
+	if cmdOptions.enableAll || cmdOptions.enableDiskUsage {
+		pdcs.StartDiskUsageTicker(logger, cmdOptions.cacheDuration)
+	}
+
 	logger.Info("Listening on", "address", cmdOptions.webListen)
 
 	server := &http.Server{
@@ -123,6 +128,7 @@ func setEnabledCollectors(opts *exporterOptions) error {
 		enList = append(enList, "volume")
 		enList = append(enList, "network")
 		enList = append(enList, "system")
+		enList = append(enList, "disk_usage")
 	} else {
 		enList = append(enList, getEnabledCollectors(opts)...)
 	}
@@ -156,6 +162,10 @@ func getEnabledCollectors(opts *exporterOptions) []string {
 
 	if opts.enableSystem {
 		enCollectors = append(enCollectors, "system")
+	}
+
+	if opts.enableDiskUsage {
+		enCollectors = append(enCollectors, "disk_usage")
 	}
 
 	return enCollectors
@@ -232,6 +242,11 @@ func parseOptions(cmd *cobra.Command) (*exporterOptions, error) { //nolint:cyclo
 		return nil, err
 	}
 
+	enableDiskUsage, err := cmd.Flags().GetBool("collector.disk_usage")
+	if err != nil {
+		return nil, err
+	}
+
 	cacheDuration, err := cmd.Flags().GetInt64("collector.cache_duration")
 	if err != nil {
 		return nil, err
@@ -261,6 +276,7 @@ func parseOptions(cmd *cobra.Command) (*exporterOptions, error) { //nolint:cyclo
 		enableVolumes:             enableVolumes,
 		enableNetworks:            enableNetworks,
 		enableSystem:              enableSystem,
+		enableDiskUsage:           enableDiskUsage,
 		cacheDuration:             cacheDuration,
 		enhanceMetrics:            enhanceMetrics,
 	}, nil

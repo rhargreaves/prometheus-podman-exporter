@@ -43,6 +43,7 @@ var _ = BeforeSuite(func() {
 	rootCmd.Flags().BoolP("collector.volume", "v", false, "")
 	rootCmd.Flags().BoolP("collector.network", "n", false, "")
 	rootCmd.Flags().BoolP("collector.system", "s", false, "")
+	rootCmd.Flags().BoolP("collector.disk_usage", "u", false, "")
 	rootCmd.Flags().BoolP("collector.store_labels", "b", false, "")
 	rootCmd.Flags().StringP("collector.whitelisted_labels", "w", "", "")
 	rootCmd.Flags().Int64P("collector.cache_duration", "t", cacheDuration, "")

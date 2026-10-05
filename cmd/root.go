@@ -102,7 +102,10 @@ func init() {
 		"Enable network collector.")
 
 	rootCmd.Flags().BoolP("collector.system", "s", false,
-		"Enable system collector.")
+		"Enable system (host) collector.")
+
+	rootCmd.Flags().BoolP("collector.disk_usage", "u", false,
+		"Enable disk usage collector.")
 
 	rootCmd.Flags().BoolP("collector.store_labels", "b", false,
 		"Convert pod/container/image labels on prometheus metrics for each pod/container/image.")
@@ -113,7 +116,7 @@ func init() {
 			"collector.store_labels must be set to false for this to take effect.")
 
 	rootCmd.Flags().Int64P("collector.cache_duration", "t", cacheDuration,
-		"Duration (seconds) to retrieve container, size and refresh the cache.")
+		"Duration (seconds) to retrieve container size and disk usage, and refresh the caches.")
 
 	rootCmd.Flags().BoolP("collector.enhance-metrics", "", false,
 		"enhance all metrics with the same field as for their podman_<...>_info metrics.")

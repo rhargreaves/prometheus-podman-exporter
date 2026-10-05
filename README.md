@@ -33,14 +33,15 @@ Usage:
   prometheus-podman-exporter [flags]
 
 Flags:
-  -t, --collector.cache_duration int          Duration (seconds) to retrieve container, size and refresh the cache. (default 3600)
+  -t, --collector.cache_duration int          Duration (seconds) to retrieve container size and disk usage, and refresh the caches. (default 3600)
+  -u, --collector.disk_usage                  Enable disk usage collector.
   -a, --collector.enable-all                  Enable all collectors by default.
       --collector.enhance-metrics             enhance all metrics with the same field as for their podman_<...>_info metrics.
   -i, --collector.image                       Enable image collector.
   -n, --collector.network                     Enable network collector.
   -o, --collector.pod                         Enable pod collector.
   -b, --collector.store_labels                Convert pod/container/image labels on prometheus metrics for each pod/container/image.
-  -s, --collector.system                      Enable system collector.
+  -s, --collector.system                      Enable system (host) collector.
   -v, --collector.volume                      Enable volume collector.
   -w, --collector.whitelisted_labels string   Comma separated list of pod/container/image labels to be converted
                                               to labels on prometheus metrics for each pod/container/image.
@@ -78,6 +79,7 @@ The table below list all existing collector and their description.
 | pod       | exposes pod information
 | volume    | exposes volume information
 | system    | exposes system (host) information
+| disk_usage | exposes disk usage information
 
 ### Collectors examples output
 
@@ -309,6 +311,14 @@ podman_system_conmon_version{version="2.1.0"} 1
 # HELP podman_system_runtime_version Podman system runtime version.
 # TYPE podman_system_runtime_version gauge
 podman_system_runtime_version{version="crun version 1.4.5"} 1
+```
+
+#### `disk_usage`
+
+```shell
+# HELP podman_disk_usage_images_size_bytes Podman disk usage of images (sum of all image layers).
+# TYPE podman_disk_usage_images_size_bytes gauge
+podman_disk_usage_images_size_bytes 1.452382e+06
 ```
 
 ## License
