@@ -4,12 +4,42 @@ import (
 	"encoding/json"
 	"os/exec"
 
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/prometheus-podman-exporter/pdcs"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Pdcs/DiskUsage", func() {
+	It("SummarizeDiskUsage", func() {
+		report := &entities.SystemDfReport{
+			ImagesSize: 200,
+			Images: []*entities.SystemDfImageReport{
+				{ImageID: "used", Containers: 1, UniqueSize: 40},
+				{ImageID: "used", Containers: 1, UniqueSize: 40}, // second tag of the same image
+				{ImageID: "unused", Containers: 0, UniqueSize: 25},
+			},
+			Containers: []*entities.SystemDfContainerReport{
+				{Status: "running", RWSize: 10},
+				{Status: "created", RWSize: 5},
+				{Status: "exited", RWSize: 7},
+			},
+			Volumes: []*entities.SystemDfVolumeReport{
+				{Size: 30, ReclaimableSize: 0},
+				{Size: 50, ReclaimableSize: 50},
+			},
+		}
+
+		Expect(pdcs.SummarizeDiskUsage(report)).To(Equal(pdcs.DiskUsage{
+			ImagesSize:            200,
+			ImagesReclaimable:     160, // used image subtracted once
+			ContainersSize:        22,
+			ContainersReclaimable: 12, // running container excluded
+			VolumesSize:           80,
+			VolumesReclaimable:    50,
+		}))
+	})
+
 	It("DiskUsageSummary", func() {
 		testImage := "quay.io/quay/busybox"
 		testImageTag := "localhost/exp_pdcs_test_du_busybox:latest"

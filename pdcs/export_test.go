@@ -1,6 +1,7 @@
 package pdcs
 
 var (
-	UpdateImages    = updateImages
-	UpdateDiskUsage = updateDiskUsage
+	UpdateImages       = updateImages
+	UpdateDiskUsage    = updateDiskUsage
+	SummarizeDiskUsage = diskUsageSummary
 )
