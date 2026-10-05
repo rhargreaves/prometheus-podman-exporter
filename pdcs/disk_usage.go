@@ -17,7 +17,7 @@ type diskUsageReport struct {
 	repLock   sync.Mutex
 }
 
-// DiskUsage implements podman disk usage (podman system df) summary information.
+// DiskUsage implements podman disk usage summary information.
 type DiskUsage struct {
 	ImagesSize            int64
 	ImagesReclaimable     int64
@@ -60,27 +60,9 @@ func updateDiskUsage() {
 // Following code is based on printSummary from https://github.com/containers/podman/blob/v5.4.2/cmd/podman/system/df.go
 func diskUsageSummary(report *entities.SystemDfReport) DiskUsage {
 	diskUsage := DiskUsage{
-		ImagesSize: report.ImagesSize,
+		ImagesSize:        report.ImagesSize,
+		ImagesReclaimable: imageReclaimable(report.Images, report.ImagesSize),
 	}
-
-	var imagesUsed int64
-
-	// an image can have multiple tags, count each image only once.
-	visitedImages := make(map[string]bool)
-
-	for _, image := range report.Images {
-		if visitedImages[image.ImageID] {
-			continue
-		}
-
-		visitedImages[image.ImageID] = true
-
-		if image.Containers > 0 {
-			imagesUsed += image.UniqueSize
-		}
-	}
-
-	diskUsage.ImagesReclaimable = report.ImagesSize - imagesUsed
 
 	for _, container := range report.Containers {
 		if container.Status != "running" {
@@ -96,6 +78,27 @@ func diskUsageSummary(report *entities.SystemDfReport) DiskUsage {
 	}
 
 	return diskUsage
+}
+
+func imageReclaimable(images []*entities.SystemDfImageReport, imagesSize int64) int64 {
+	var imagesUsed int64
+
+	// an image can have multiple tags, count each image only once.
+	visitedImages := make(map[string]bool)
+
+	for _, image := range images {
+		if visitedImages[image.ImageID] {
+			continue
+		}
+
+		visitedImages[image.ImageID] = true
+
+		if image.Containers > 0 {
+			imagesUsed += image.UniqueSize
+		}
+	}
+
+	return imagesSize - imagesUsed
 }
 
 // StartDiskUsageTicker starts disk usage cache refresh routine.
