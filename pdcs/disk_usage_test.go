@@ -12,8 +12,30 @@ import (
 var _ = Describe("Pdcs/DiskUsage", func() {
 	It("DiskUsageSummary", func() {
 		testImage := "quay.io/quay/busybox"
+		testImageTag := "localhost/exp_pdcs_test_du_busybox:latest"
+		testContainer := "exp_pdcs_test_du_container01"
+		testVolumeUsed := "exp_pdcs_test_du_vol01"
+		testVolumeUnused := "exp_pdcs_test_du_vol02"
+
+		DeferCleanup(func() {
+			_ = exec.Command("podman", "container", "rm", "-f", "-t", "0", testContainer).Run()
+			_ = exec.Command("podman", "volume", "rm", "-f", testVolumeUsed, testVolumeUnused).Run()
+			_ = exec.Command("podman", "image", "untag", testImage, testImageTag).Run()
+		})
 
 		_, err := exec.Command("podman", "image", "pull", testImage).Output()
+		Expect(err).To(BeNil())
+
+		// second tag for the same image, image shall be counted only once.
+		_, err = exec.Command("podman", "image", "tag", testImage, testImageTag).Output()
+		Expect(err).To(BeNil())
+
+		_, err = exec.Command("podman", "volume", "create", testVolumeUnused).Output()
+		Expect(err).To(BeNil())
+
+		// container uses the image and a volume.
+		_, err = exec.Command("podman", "container", "create", "--name", testContainer,
+			"-v", testVolumeUsed+":/data", testImage).Output()
 		Expect(err).To(BeNil())
 
 		pdcs.UpdateDiskUsage()
@@ -24,23 +46,34 @@ var _ = Describe("Pdcs/DiskUsage", func() {
 		output, err := exec.Command("podman", "system", "df", "--format", "json").Output()
 		Expect(err).To(BeNil())
 
-		var summaries []struct {
-			Type    string
-			RawSize int64
+		type summary struct {
+			RawSize        int64
+			RawReclaimable int64
 		}
 
-		Expect(json.Unmarshal(output, &summaries)).To(Succeed())
-
-		imagesSize := int64(-1)
-		for _, summary := range summaries {
-			if summary.Type == "Images" {
-				imagesSize = summary.RawSize
-
-				break
-			}
+		var reports []struct {
+			Type string
+			summary
 		}
+
+		Expect(json.Unmarshal(output, &reports)).To(Succeed())
+
+		summaries := make(map[string]summary)
+		for _, report := range reports {
+			summaries[report.Type] = report.summary
+		}
+
+		Expect(summaries).To(HaveKey("Images"))
+		Expect(summaries).To(HaveKey("Containers"))
+		Expect(summaries).To(HaveKey("Local Volumes"))
 
 		Expect(diskUsage.ImagesSize).To(BeNumerically(">", 0))
-		Expect(diskUsage.ImagesSize).To(Equal(imagesSize))
+
+		Expect(summary{diskUsage.ImagesSize, diskUsage.ImagesReclaimable}).
+			To(Equal(summaries["Images"]))
+		Expect(summary{diskUsage.ContainersSize, diskUsage.ContainersReclaimable}).
+			To(Equal(summaries["Containers"]))
+		Expect(summary{diskUsage.VolumesSize, diskUsage.VolumesReclaimable}).
+			To(Equal(summaries["Local Volumes"]))
 	})
 })

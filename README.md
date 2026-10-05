@@ -316,9 +316,29 @@ podman_system_runtime_version{version="crun version 1.4.5"} 1
 #### `disk_usage`
 
 ```shell
+# HELP podman_disk_usage_containers_reclaimable_bytes Podman disk usage estimate of reclaimable container space (containers not running).
+# TYPE podman_disk_usage_containers_reclaimable_bytes gauge
+podman_disk_usage_containers_reclaimable_bytes 0
+
+# HELP podman_disk_usage_containers_size_bytes Podman disk usage of containers (sum of container read-write layers).
+# TYPE podman_disk_usage_containers_size_bytes gauge
+podman_disk_usage_containers_size_bytes 0
+
+# HELP podman_disk_usage_images_reclaimable_bytes Podman disk usage estimate of reclaimable image space (images not used by containers).
+# TYPE podman_disk_usage_images_reclaimable_bytes gauge
+podman_disk_usage_images_reclaimable_bytes 5.593502e+06
+
 # HELP podman_disk_usage_images_size_bytes Podman disk usage of images (sum of all image layers).
 # TYPE podman_disk_usage_images_size_bytes gauge
-podman_disk_usage_images_size_bytes 1.452382e+06
+podman_disk_usage_images_size_bytes 7.045884e+06
+
+# HELP podman_disk_usage_volumes_reclaimable_bytes Podman disk usage estimate of reclaimable local volume space (volumes not used by containers).
+# TYPE podman_disk_usage_volumes_reclaimable_bytes gauge
+podman_disk_usage_volumes_reclaimable_bytes 32768
+
+# HELP podman_disk_usage_volumes_size_bytes Podman disk usage of local volumes.
+# TYPE podman_disk_usage_volumes_size_bytes gauge
+podman_disk_usage_volumes_size_bytes 98304
 ```
 
 ## License

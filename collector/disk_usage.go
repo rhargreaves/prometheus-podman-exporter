@@ -8,8 +8,13 @@ import (
 )
 
 type diskUsageCollector struct {
-	imagesSize typedDesc
-	logger     *slog.Logger
+	imagesSize            typedDesc
+	imagesReclaimable     typedDesc
+	containersSize        typedDesc
+	containersReclaimable typedDesc
+	volumesSize           typedDesc
+	volumesReclaimable    typedDesc
+	logger                *slog.Logger
 }
 
 func init() {
@@ -19,13 +24,18 @@ func init() {
 // NewDiskUsageCollector returns a Collector exposing podman disk usage information.
 func NewDiskUsageCollector(logger *slog.Logger) (Collector, error) {
 	return &diskUsageCollector{
-		imagesSize: typedDesc{
-			prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, "disk_usage", "images_size_bytes"),
-				"Podman disk usage of images (sum of all image layers).",
-				nil, nil,
-			), prometheus.GaugeValue,
-		},
+		imagesSize: newDiskUsageDesc("images_size_bytes",
+			"Podman disk usage of images (sum of all image layers)."),
+		imagesReclaimable: newDiskUsageDesc("images_reclaimable_bytes",
+			"Podman disk usage estimate of reclaimable image space (images not used by containers)."),
+		containersSize: newDiskUsageDesc("containers_size_bytes",
+			"Podman disk usage of containers (sum of container read-write layers)."),
+		containersReclaimable: newDiskUsageDesc("containers_reclaimable_bytes",
+			"Podman disk usage estimate of reclaimable container space (containers not running)."),
+		volumesSize: newDiskUsageDesc("volumes_size_bytes",
+			"Podman disk usage of local volumes."),
+		volumesReclaimable: newDiskUsageDesc("volumes_reclaimable_bytes",
+			"Podman disk usage estimate of reclaimable local volume space (volumes not used by containers)."),
 		logger: logger,
 	}, nil
 }
@@ -38,6 +48,21 @@ func (c *diskUsageCollector) Update(ch chan<- prometheus.Metric) error {
 	}
 
 	ch <- c.imagesSize.mustNewConstMetric(float64(diskUsage.ImagesSize))
+	ch <- c.imagesReclaimable.mustNewConstMetric(float64(diskUsage.ImagesReclaimable))
+	ch <- c.containersSize.mustNewConstMetric(float64(diskUsage.ContainersSize))
+	ch <- c.containersReclaimable.mustNewConstMetric(float64(diskUsage.ContainersReclaimable))
+	ch <- c.volumesSize.mustNewConstMetric(float64(diskUsage.VolumesSize))
+	ch <- c.volumesReclaimable.mustNewConstMetric(float64(diskUsage.VolumesReclaimable))
 
 	return nil
+}
+
+func newDiskUsageDesc(name string, help string) typedDesc {
+	return typedDesc{
+		prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "disk_usage", name),
+			help,
+			nil, nil,
+		), prometheus.GaugeValue,
+	}
 }
